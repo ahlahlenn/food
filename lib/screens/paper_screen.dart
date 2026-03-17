@@ -8,6 +8,7 @@ import '../providers/entries_provider.dart';
 import '../widgets/intelligence_margin.dart';
 import '../widgets/daily_pulse.dart';
 import '../widgets/ink_droplet_fab.dart';
+import 'settings_screen.dart';
 
 class PaperScreen extends ConsumerStatefulWidget {
   const PaperScreen({super.key});
@@ -19,8 +20,10 @@ class PaperScreen extends ConsumerStatefulWidget {
 class _PaperScreenState extends ConsumerState<PaperScreen> {
   final TextEditingController _textController = TextEditingController();
   final SpeechToText _speechToText = SpeechToText();
+  final FocusNode _focusNode = FocusNode();
   final List<String> _spokenWords = [];
   bool _speechEnabled = false;
+  String? _editingEntryId;
 
   @override
   void initState() {
@@ -53,24 +56,37 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
     
     if (_spokenWords.isNotEmpty) {
       final text = _spokenWords.join(' ');
-      _textController.text = text;
-      _addEntry(text);
+      _submitEntry(text);
     }
   }
 
-  void _addEntry(String text) {
+  void _submitEntry(String text) {
     if (text.trim().isEmpty) return;
-    ref.read(entriesProvider.notifier).addEntry(text.trim());
+    
+    if (_editingEntryId != null) {
+      ref.read(entriesProvider.notifier).updateEntry(_editingEntryId!, text.trim());
+      setState(() => _editingEntryId = null);
+    } else {
+      ref.read(entriesProvider.notifier).addEntry(text.trim());
+    }
     _textController.clear();
+    _focusNode.unfocus();
   }
 
-  void _updateEntry(FoodEntry entry, String text) {
-    if (text.trim().isEmpty) return;
-    ref.read(entriesProvider.notifier).updateEntry(entry.id, text.trim());
+  void _startEditing(FoodEntry entry) {
+    setState(() {
+      _editingEntryId = entry.id;
+      _textController.text = entry.text;
+    });
+    _focusNode.requestFocus();
   }
 
-  void _deleteEntry(String id) {
-    ref.read(entriesProvider.notifier).deleteEntry(id);
+  void _cancelEditing() {
+    setState(() {
+      _editingEntryId = null;
+      _textController.clear();
+    });
+    _focusNode.unfocus();
   }
 
   @override
@@ -87,11 +103,11 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
                   Text(
-                    'Spino',
+                    'Nourish',
                     style: GoogleFonts.inter(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -99,6 +115,14 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                     ),
                   ),
                   const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, size: 22),
+                    color: Colors.black38,
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
+                  ),
                   Text(
                     DateFormat('EEEE, MMM d').format(DateTime.now()),
                     style: GoogleFonts.inter(
@@ -109,95 +133,37 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                 ],
               ),
             ),
-            // Paper entries
+            // Paper canvas (editable area)
             Expanded(
-              child: entries.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.edit_note,
-                            size: 64,
-                            color: Colors.black12,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'What did you eat?',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              color: Colors.black38,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Tap + or hold mic to log',
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 12,
-                              color: Colors.black26,
-                            ),
-                          ),
-                        ],
+              child: GestureDetector(
+                onTap: () {
+                  // Tap on canvas to start typing
+                  _focusNode.requestFocus();
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: entries.length,
-                      itemBuilder: (context, index) {
-                        final entry = entries[index];
-                        return _PaperEntry(
-                          entry: entry,
-                          onUpdate: (text) => _updateEntry(entry, text),
-                          onDelete: () => _deleteEntry(entry.id),
-                        );
-                      },
-                    ),
-            ),
-            // Input area
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _textController,
-                        style: GoogleFonts.inter(fontSize: 16),
-                        decoration: InputDecoration(
-                          hintText: 'Log your meal...',
-                          hintStyle: GoogleFonts.inter(
-                            color: Colors.black26,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        onSubmitted: _addEntry,
-                      ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  InkDropletFab(
-                    onPressed: () => _addEntry(_textController.text),
-                    onLongPressStart: _startListening,
-                    onLongPressEnd: _stopListening,
-                  ),
-                ],
+                  child: entries.isEmpty
+                      ? _buildEmptyState()
+                      : _buildEntriesList(entries),
+                ),
               ),
             ),
+            // Input area (appears when typing)
+            _buildInputBar(),
             // Daily Pulse
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: streakAsync.when(
                 data: (streak) => DailyPulse(
                   currentCalories: totals['calories'] ?? 0,
@@ -217,68 +183,190 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    _speechToText.stop();
-    super.dispose();
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.edit_note,
+            size: 64,
+            color: Colors.black12,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Start typing on the canvas',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              color: Colors.black38,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'or hold the button to speak',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 12,
+              color: Colors.black26,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-}
 
-class _PaperEntry extends StatelessWidget {
-  final FoodEntry entry;
-  final Function(String) onUpdate;
-  final VoidCallback onDelete;
-
-  const _PaperEntry({
-    required this.entry,
-    required this.onUpdate,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+  Widget _buildEntriesList(List<FoodEntry> entries) {
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
+      itemCount: entries.length + 1, // +1 for input at top
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return const SizedBox.shrink(); // Input is below
+        }
+        final entry = entries[index - 1];
+        return _CanvasEntry(
+          entry: entry,
+          onTap: () => _startEditing(entry),
+          onDelete: () => ref.read(entriesProvider.notifier).deleteEntry(entry.id),
+        );
+      },
+    );
+  }
+
+  Widget _buildInputBar() {
+    final isRecording = ref.watch(isRecordingProvider);
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
             offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  entry.text,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    color: Colors.black87,
+            child: Focus(
+              onFocusChange: (hasFocus) {
+                if (!hasFocus && _textController.text.isEmpty) {
+                  // Keep the bar visible but subtle
+                }
+              },
+              child: TextField(
+                controller: _textController,
+                focusNode: _focusNode,
+                style: GoogleFonts.inter(fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: _editingEntryId != null 
+                      ? 'Editing entry...'
+                      : 'Type what you ate...',
+                  hintStyle: GoogleFonts.inter(color: Colors.black26),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('h:mm a').format(entry.timestamp),
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
-                    color: Colors.black26,
-                  ),
-                ),
-              ],
+                onSubmitted: _submitEntry,
+                textInputAction: TextInputAction.done,
+              ),
             ),
           ),
-          IntelligenceMargin(entry: entry),
+          if (_editingEntryId != null)
+            IconButton(
+              icon: const Icon(Icons.close, size: 20),
+              color: Colors.black45,
+              onPressed: _cancelEditing,
+            ),
+          InkDropletFab(
+            onPressed: () => _submitEntry(_textController.text),
+            onLongPressStart: _startListening,
+            onLongPressEnd: _stopListening,
+          ),
+          const SizedBox(width: 8),
         ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _focusNode.dispose();
+    _speechToText.stop();
+    super.dispose();
+  }
+}
+
+class _CanvasEntry extends StatelessWidget {
+  final FoodEntry entry;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  const _CanvasEntry({
+    required this.entry,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: Key(entry.id),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onDelete(),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        child: const Icon(Icons.delete_outline, color: Colors.red),
+      ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFAF9F6),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.black.withOpacity(0.05),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.text,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        color: Colors.black87,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      DateFormat('h:mm a').format(entry.timestamp),
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 11,
+                        color: Colors.black26,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IntelligenceMargin(entry: entry),
+            ],
+          ),
+        ),
       ),
     );
   }

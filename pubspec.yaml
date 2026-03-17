@@ -1,4 +1,4 @@
-name: spino
+name: nourish
 description: "Zero-Friction Calorie Journal"
 publish_to: 'none'
 version: 1.0.0+1
@@ -24,3 +24,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
