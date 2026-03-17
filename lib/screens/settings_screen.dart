@@ -93,7 +93,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // API Key section
           Text(
             'Groq API Key',
             style: GoogleFonts.inter(
@@ -144,9 +143,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       setState(() {
                         _isEditing = true;
                         _apiKeyController.text = '';
-                        _apiKeyController.selection = TextSelection.fromPosition(
-                          TextPosition(offset: _apiKeyController.text.length),
-                        );
                       });
                     }
                   },
@@ -158,7 +154,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       child: ElevatedButton(
                         onPressed: _saveApiKey,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
+                          backgroundColor: Colors.black87,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
@@ -185,7 +181,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          // About
           Text(
             'About',
             style: GoogleFonts.inter(

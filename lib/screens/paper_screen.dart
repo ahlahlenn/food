@@ -46,7 +46,6 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
-      onSoundLevelChange: (level) {},
     );
     ref.read(isRecordingProvider.notifier).state = true;
   }
@@ -94,7 +93,6 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
     final totals = ref.watch(dailyTotalsProvider);
     final goal = ref.watch(dailyGoalProvider);
     final streakAsync = ref.watch(streakProvider);
-    final isRecording = ref.watch(isRecordingProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
@@ -126,10 +124,14 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                 ],
               ),
             ),
-            // Canvas - no boxes, just paper
+            // Canvas - tap anywhere to type
             Expanded(
               child: GestureDetector(
-                onTap: () => FocusScope.of(context).unfocus(),
+                onTap: () {
+                  // Show input when tapping canvas
+                  _showInputDialog();
+                },
+                behavior: HitTestBehavior.opaque,
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: const BoxDecoration(
@@ -141,61 +143,7 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                 ),
               ),
             ),
-            // Input area - only shows when typing
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: _textController.text.isNotEmpty || _editingEntryId != null ? 64 : 0,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: _textController.text.isNotEmpty || _editingEntryId != null ? 1 : 0,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _textController,
-                          style: GoogleFonts.jetBrainsMono(fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Type your meal...',
-                            hintStyle: GoogleFonts.jetBrainsMono(color: Colors.black26, fontSize: 14),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          onChanged: (_) => setState(() {}),
-                          onSubmitted: _submitEntry,
-                        ),
-                      ),
-                      if (_editingEntryId != null)
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 18),
-                          color: Colors.black45,
-                          onPressed: _cancelEditing,
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Icon(
-                          Icons.send_rounded,
-                          size: 20,
-                          color: const Color(0xFF6366F1),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Daily Pulse + FAB
+            // Bottom area
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Row(
@@ -215,7 +163,8 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  _buildActionButton(),
+                  // Mic button only
+                  _buildMicButton(),
                 ],
               ),
             ),
@@ -225,16 +174,30 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
     );
   }
 
-  Widget _buildActionButton() {
-    final hasText = _textController.text.isNotEmpty;
+  void _showInputDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _InputSheet(
+        initialText: _editingEntryId != null ? _textController.text : '',
+        isEditing: _editingEntryId != null,
+        onSubmit: (text) {
+          _submitEntry(text);
+          Navigator.pop(context);
+        },
+        onCancel: () {
+          _cancelEditing();
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  Widget _buildMicButton() {
     final isRecording = ref.watch(isRecordingProvider);
 
     return GestureDetector(
-      onTap: () {
-        if (hasText) {
-          _submitEntry(_textController.text);
-        }
-      },
       onLongPressStart: (_) => _startListening(),
       onLongPressEnd: (_) => _stopListening(),
       child: AnimatedContainer(
@@ -242,21 +205,12 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isRecording
-                ? [const Color(0xFFEF4444), const Color(0xFFDC2626)]
-                : hasText
-                    ? [const Color(0xFF6366F1), const Color(0xFF4F46E5)]
-                    : [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: isRecording ? Colors.red : Colors.black87,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: (isRecording ? const Color(0xFFEF4444) : const Color(0xFF6366F1))
-                  .withOpacity(0.4),
-              blurRadius: 16,
+              color: (isRecording ? Colors.red : Colors.black54).withOpacity(0.3),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
@@ -264,8 +218,8 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
         child: Center(
           child: isRecording
               ? _RecordingIndicator()
-              : Icon(
-                  hasText ? Icons.send_rounded : Icons.mic_rounded,
+              : const Icon(
+                  Icons.mic,
                   color: Colors.white,
                   size: 24,
                 ),
@@ -279,10 +233,12 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(Icons.add, size: 48, color: Colors.black12),
+          const SizedBox(height: 16),
           Text(
-            'Tap + to add',
+            'Tap anywhere to write',
             style: GoogleFonts.jetBrainsMono(
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.black26,
               fontStyle: FontStyle.italic,
             ),
@@ -292,7 +248,7 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
             'or hold mic to speak',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 12,
-              color: Colors.black26,
+              color: Colors.black18,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -309,7 +265,10 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
         final entry = entries[index];
         return _HandwrittenEntry(
           entry: entry,
-          onTap: () => _startEditing(entry),
+          onTap: () {
+            _startEditing(entry);
+            _showInputDialog();
+          },
           onDelete: () => ref.read(entriesProvider.notifier).deleteEntry(entry.id),
         );
       },
@@ -320,6 +279,129 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
   void dispose() {
     _textController.dispose();
     _speechToText.stop();
+    super.dispose();
+  }
+}
+
+class _InputSheet extends StatefulWidget {
+  final String initialText;
+  final bool isEditing;
+  final Function(String) onSubmit;
+  final VoidCallback onCancel;
+
+  const _InputSheet({
+    required this.initialText,
+    required this.isEditing,
+    required this.onSubmit,
+    required this.onCancel,
+  });
+
+  @override
+  State<_InputSheet> createState() => _InputSheetState();
+}
+
+class _InputSheetState extends State<_InputSheet> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialText);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFAF9F6),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(context).padding.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Input field
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              style: GoogleFonts.jetBrainsMono(fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'What did you eat?',
+                hintStyle: GoogleFonts.jetBrainsMono(color: Colors.black26, fontSize: 16),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              onSubmitted: (text) {
+                if (text.trim().isNotEmpty) {
+                  widget.onSubmit(text);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            // Buttons
+            Row(
+              children: [
+                if (widget.isEditing)
+                  TextButton(
+                    onPressed: widget.onCancel,
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.inter(color: Colors.black45),
+                    ),
+                  ),
+                const Spacer(),
+                ElevatedButton(
+                  onPressed: () {
+                    if (_controller.text.trim().isNotEmpty) {
+                      widget.onSubmit(_controller.text);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    widget.isEditing ? 'Update' : 'Add',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
     super.dispose();
   }
 }
@@ -353,12 +435,10 @@ class _HandwrittenEntry extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handwritten text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Timestamp in small italic
                     Text(
                       _formatTime(entry.timestamp),
                       style: GoogleFonts.jetBrainsMono(
@@ -368,7 +448,6 @@ class _HandwrittenEntry extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Main entry - handwritten style
                     Text(
                       entry.text,
                       style: GoogleFonts.jetBrainsMono(
@@ -382,7 +461,6 @@ class _HandwrittenEntry extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              // Intelligence margin
               IntelligenceMargin(entry: entry),
             ],
           ),

@@ -27,7 +27,6 @@ class IntelligenceMargin extends StatelessWidget {
               ),
             )
           else ...[
-            // Calories - handwritten style
             Text(
               '${entry.calories}',
               style: GoogleFonts.jetBrainsMono(
@@ -44,10 +43,9 @@ class IntelligenceMargin extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Macros
-            _MacroDot('P', entry.protein, Colors.red),
+            _MacroDot('P', entry.protein, Colors.red.shade400),
             _MacroDot('C', entry.carbs, Colors.amber.shade600),
-            _MacroDot('F', entry.fat, Colors.blue),
+            _MacroDot('F', entry.fat, Colors.blue.shade400),
           ],
         ],
       ),

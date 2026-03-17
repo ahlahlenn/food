@@ -39,40 +39,35 @@ class DailyPulse extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Calories
               _PulseItem(
                 label: '${currentCalories}',
                 sublabel: '/$goal',
                 highlight: true,
               ),
               Container(width: 1, height: 16, color: Colors.black12),
-              // Protein
               _PulseItem(
                 label: '${protein}g',
                 sublabel: 'P',
-                color: Colors.red,
+                color: Colors.red.shade400,
               ),
               Container(width: 1, height: 16, color: Colors.black12),
-              // Carbs  
               _PulseItem(
                 label: '${carbs}g',
                 sublabel: 'C',
-                color: Colors.amber,
+                color: Colors.amber.shade600,
               ),
               Container(width: 1, height: 16, color: Colors.black12),
-              // Fat
               _PulseItem(
                 label: '${fat}g',
                 sublabel: 'F',
-                color: Colors.blue,
+                color: Colors.blue.shade400,
               ),
-              // Streak
               if (streak > 0) ...[
                 Container(width: 1, height: 16, color: Colors.black12),
                 _PulseItem(
                   label: '${streak}d',
                   sublabel: 'streak',
-                  color: const Color(0xFF6366F1),
+                  color: Colors.black54,
                 ),
               ],
             ],

@@ -46,16 +46,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Simple icon
           Container(
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: Colors.black87,
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
@@ -102,13 +97,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          // Goal display
           Text(
             '$_dailyGoal',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 56,
               fontWeight: FontWeight.w300,
-              color: const Color(0xFF6366F1),
+              color: Colors.black87,
             ),
           ),
           Text(
@@ -119,13 +113,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          // Slider
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: const Color(0xFF6366F1),
+              activeTrackColor: Colors.black87,
               inactiveTrackColor: Colors.black12,
-              thumbColor: const Color(0xFF6366F1),
-              overlayColor: const Color(0xFF6366F1).withOpacity(0.1),
+              thumbColor: Colors.black87,
+              overlayColor: Colors.black.withOpacity(0.1),
             ),
             child: Slider(
               value: _dailyGoal.toDouble(),
@@ -153,7 +146,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Back button or spacer
           if (_currentPage > 0)
             TextButton(
               onPressed: () {
@@ -169,7 +161,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             )
           else
             const SizedBox(width: 60),
-          // Dots
           Row(
             children: List.generate(2, (index) {
               return Container(
@@ -177,15 +168,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: _currentPage == index ? 20 : 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: _currentPage == index
-                      ? const Color(0xFF6366F1)
-                      : Colors.black12,
+                  color: _currentPage == index ? Colors.black87 : Colors.black12,
                   borderRadius: BorderRadius.circular(4),
                 ),
               );
             }),
           ),
-          // Next/Start button
           ElevatedButton(
             onPressed: () async {
               if (_currentPage == 0) {
@@ -201,7 +189,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: Colors.black87,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(

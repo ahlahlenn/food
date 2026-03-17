@@ -10,7 +10,6 @@ import 'services/groq_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize services
   await GroqService.init();
   
   SystemChrome.setSystemUIOverlayStyle(
@@ -34,7 +33,7 @@ class NourishApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1),
+          seedColor: Colors.black87,
           surface: const Color(0xFFFAF9F6),
         ),
       ),
@@ -84,7 +83,7 @@ class _AppRootState extends ConsumerState<AppRoot> {
         backgroundColor: Color(0xFFFAF9F6),
         body: Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF6366F1),
+            color: Colors.black87,
           ),
         ),
       );
