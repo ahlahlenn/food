@@ -292,7 +292,7 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
             'or hold mic to speak',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 12,
-              color: Colors.black18,
+              color: Colors.black26,
               fontStyle: FontStyle.italic,
             ),
           ),

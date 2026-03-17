@@ -138,8 +138,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('1200', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.black30)),
-              Text('4000', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.black30)),
+              Text('1200', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.black38)),
+              Text('4000', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.black38)),
             ],
           ),
         ],
