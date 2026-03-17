@@ -13,26 +13,62 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
   String _status = '';
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    _apiKeyController.text = GroqService.hasApiKey ? '••••••••' : '';
+    _loadApiKey();
+  }
+
+  void _loadApiKey() {
+    if (GroqService.hasApiKey) {
+      _apiKeyController.text = '••••••••••••••••';
+    } else {
+      _apiKeyController.text = '';
+    }
   }
 
   Future<void> _saveApiKey() async {
-    if (_apiKeyController.text.isEmpty || _apiKeyController.text == '••••••••') {
+    final key = _apiKeyController.text.trim();
+    if (key.isEmpty || key == '••••••••••••••••') {
       return;
     }
     
-    setState(() => _status = 'Saving...');
-    GroqService.setApiKey(_apiKeyController.text.trim());
+    setState(() {
+      _status = 'Saving...';
+      _isEditing = false;
+    });
+    
+    GroqService.setApiKey(key);
     
     await Future.delayed(const Duration(milliseconds: 500));
-    setState(() => _status = 'Saved ✓');
+    if (mounted) {
+      setState(() => _status = 'Saved ✓');
+    }
     
     await Future.delayed(const Duration(seconds: 1));
-    setState(() => _status = '');
+    if (mounted) {
+      setState(() {
+        _status = '';
+        _apiKeyController.text = '••••••••••••••••';
+      });
+    }
+  }
+
+  Future<void> _clearApiKey() async {
+    setState(() => _status = 'Clearing...');
+    await GroqService.clearApiKey();
+    if (mounted) {
+      setState(() {
+        _apiKeyController.text = '';
+        _status = 'Cleared ✓';
+      });
+    }
+    await Future.delayed(const Duration(seconds: 1));
+    if (mounted) {
+      setState(() => _status = '');
+    }
   }
 
   @override
@@ -78,16 +114,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'For AI-powered nutrition parsing',
+                  GroqService.hasApiKey 
+                      ? 'AI parsing is enabled' 
+                      : 'Add your key for AI-powered parsing',
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 12,
-                    color: Colors.black38,
+                    color: GroqService.hasApiKey ? Colors.green : Colors.black38,
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _apiKeyController,
                   obscureText: true,
+                  enabled: _isEditing || !GroqService.hasApiKey,
                   style: GoogleFonts.jetBrainsMono(fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'gsk_...',
@@ -100,25 +139,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                   ),
+                  onTap: () {
+                    if (GroqService.hasApiKey && !_isEditing) {
+                      setState(() {
+                        _isEditing = true;
+                        _apiKeyController.text = '';
+                        _apiKeyController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _apiKeyController.text.length),
+                        );
+                      });
+                    }
+                  },
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _saveApiKey,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _saveApiKey,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          _status.isNotEmpty ? _status : 'Save Key',
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      _status.isNotEmpty ? _status : 'Save',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                    ),
-                  ),
+                    if (GroqService.hasApiKey) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _clearApiKey,
+                        icon: const Icon(Icons.delete_outline),
+                        color: Colors.red,
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

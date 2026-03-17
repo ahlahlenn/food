@@ -1,15 +1,33 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GroqService {
-  // For demo purposes - in production, use secure storage
+  static const String _apiKeyKey = 'groq_api_key';
   static String _apiKey = '';
+
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _apiKey = prefs.getString(_apiKeyKey) ?? '';
+  }
 
   static void setApiKey(String key) {
     _apiKey = key;
+    // Save to SharedPreferences
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString(_apiKeyKey, key);
+    });
+  }
+
+  static Future<void> clearApiKey() async {
+    _apiKey = '';
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_apiKeyKey);
   }
 
   static bool get hasApiKey => _apiKey.isNotEmpty;
+
+  static String get apiKey => _apiKey;
 
   static Future<Map<String, dynamic>> parseFoodEntry(String text) async {
     // First try local estimation (fast, works offline)
@@ -17,7 +35,6 @@ class GroqService {
     
     // If no API key, return local estimation
     if (_apiKey.isEmpty) {
-      print('No API key - using local estimation for: $text');
       return localResult;
     }
 
@@ -56,7 +73,6 @@ Do not include any other text.''',
         if (jsonMatch != null) {
           try {
             final parsed = jsonDecode(jsonMatch.group(0)!);
-            // Validate it has the required fields
             if (parsed['calories'] != null) {
               return {
                 'calories': (parsed['calories'] ?? 0).round(),
@@ -66,22 +82,18 @@ Do not include any other text.''',
               };
             }
           } catch (e) {
-            print('Failed to parse JSON: $e');
+            // Fall back to local
           }
         }
-      } else {
-        print('Groq API error: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('Groq API exception: $e');
+      // Fall back to local
     }
     
-    // Fall back to local estimation
     return localResult;
   }
 
   static Map<String, dynamic> _estimateFromLocal(String text) {
-    // Default values
     int calories = 200;
     int protein = 10;
     int carbs = 25;
@@ -106,6 +118,10 @@ Do not include any other text.''',
       calories = 94; protein = 10; carbs = 2; fat = 5;
     } else if (lower.contains('shrimp')) {
       calories = 85; protein = 18; carbs = 0; fat = 1;
+    } else if (lower.contains('pork') || lower.contains('bacon') || lower.contains('ham')) {
+      calories = 200; protein = 20; carbs = 0; fat = 12;
+    } else if (lower.contains('duck')) {
+      calories = 337; protein = 19; carbs = 0; fat = 28;
     
     // Carbs
     } else if (lower.contains('rice')) {
@@ -124,6 +140,8 @@ Do not include any other text.''',
       calories = 285; protein = 12; carbs = 36; fat = 10;
     } else if (lower.contains('burger') || lower.contains('hamburger')) {
       calories = 354; protein = 20; carbs = 29; fat = 17;
+    } else if (lower.contains('fries') || lower.contains('chips')) {
+      calories = 312; protein = 3; carbs = 41; fat = 15;
     
     // Fruits
     } else if (lower.contains('banana')) {
@@ -136,6 +154,12 @@ Do not include any other text.''',
       calories = 84; protein = 1; carbs = 21; fat = 0;
     } else if (lower.contains('strawberry') || lower.contains('strawberries')) {
       calories = 32; protein = 1; carbs = 8; fat = 0;
+    } else if (lower.contains('grape') || lower.contains('grapes')) {
+      calories = 62; protein = 1; carbs = 16; fat = 0;
+    } else if (lower.contains('mango')) {
+      calories = 99; protein = 1; carbs = 25; fat = 1;
+    } else if (lower.contains('watermelon')) {
+      calories = 46; protein = 1; carbs = 12; fat = 0;
     
     // Veggies
     } else if (lower.contains('salad')) {
@@ -146,6 +170,14 @@ Do not include any other text.''',
       calories = 55; protein = 4; carbs = 11; fat = 1;
     } else if (lower.contains('spinach')) {
       calories = 23; protein = 3; carbs = 4; fat = 0;
+    } else if (lower.contains('carrot') || lower.contains('carrots')) {
+      calories = 41; protein = 1; carbs = 10; fat = 0;
+    } else if (lower.contains('tomato') || lower.contains('tomatoes')) {
+      calories = 22; protein = 1; carbs = 5; fat = 0;
+    } else if (lower.contains('onion')) {
+      calories = 40; protein = 1; carbs = 9; fat = 0;
+    } else if (lower.contains('mushroom') || lower.contains('mushrooms')) {
+      calories = 22; protein = 3; carbs = 3; fat = 0;
     
     // Dairy
     } else if (lower.contains('milk')) {
@@ -154,6 +186,8 @@ Do not include any other text.''',
       calories = 113; protein = 7; carbs = 0; fat = 9;
     } else if (lower.contains('butter')) {
       calories = 102; protein = 0; carbs = 0; fat = 12;
+    } else if (lower.contains('cream')) {
+      calories = 340; protein = 2; carbs = 3; fat = 36;
     
     // Drinks & others
     } else if (lower.contains('coffee')) {
@@ -172,31 +206,47 @@ Do not include any other text.''',
       calories = 200; protein = 9; carbs = 38; fat = 1;
     } else if (lower.contains('taco')) {
       calories = 226; protein = 9; carbs = 20; fat = 12;
-    } else if (lower.contains('wrap')) {
+    } else if (lower.contains('wrap') || lower.contains('burrito')) {
       calories = 280; protein = 12; carbs = 35; fat = 10;
+    } else if (lower.contains('bagel')) {
+      calories = 245; protein = 10; carbs = 48; fat = 1;
+    } else if (lower.contains('muffin')) {
+      calories = 377; protein = 6; carbs = 60; fat = 13;
+    } else if (lower.contains('cookie') || lower.contains('cookies')) {
+      calories = 148; protein = 2; carbs = 20; fat = 7;
+    } else if (lower.contains('chocolate')) {
+      calories = 546; protein = 5; carbs = 60; fat = 31;
+    } else if (lower.contains('ice cream')) {
+      calories = 207; protein = 3; carbs = 24; fat = 11;
+    } else if (lower.contains('cereal')) {
+      calories = 379; protein = 7; carbs = 84; fat = 1;
+    } else if (lower.contains('granola')) {
+      calories = 471; protein = 10; carbs = 64; fat = 20;
+    } else if (lower.contains('pancake') || lower.contains('pancakes') || lower.contains('waffle')) {
+      calories = 227; protein = 6; carbs = 28; fat = 10;
     }
 
     // Portion modifiers
-    if (lower.contains('big') || lower.contains('large') || lower.contains('double')) {
+    if (lower.contains('big') || lower.contains('large') || lower.contains('double') || lower.contains('jumbo')) {
       calories = (calories * 1.5).round();
       protein = (protein * 1.3).round();
       carbs = (carbs * 1.3).round();
       fat = (fat * 1.3).round();
-    } else if (lower.contains('small') || lower.contains('mini') || lower.contains('half')) {
+    } else if (lower.contains('small') || lower.contains('mini') || lower.contains('half') || lower.contains('kid')) {
       calories = (calories * 0.6).round();
       protein = (protein * 0.6).round();
       carbs = (carbs * 0.6).round();
       fat = (fat * 0.6).round();
-    } else if (lower.contains('single') || lower.contains('one')) {
-      // Keep as is
     }
 
     // Cooking methods
-    if (lower.contains('fried') || lower.contains('deep fried')) {
+    if (lower.contains('fried') || lower.contains('deep fried') || lower.contains('crispy')) {
       fat = (fat * 2).round();
       calories = (calories * 1.3).round();
-    } else if (lower.contains('grilled') || lower.contains('baked')) {
+    } else if (lower.contains('grilled') || lower.contains('baked') || lower.contains('roasted')) {
       calories = (calories * 0.9).round();
+    } else if (lower.contains('steamed') || lower.contains('boiled')) {
+      calories = (calories * 0.85).round();
     }
 
     return {

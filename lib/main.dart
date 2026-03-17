@@ -5,9 +5,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/paper_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'providers/entries_provider.dart';
+import 'services/groq_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize services
+  await GroqService.init();
   
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
