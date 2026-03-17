@@ -22,17 +22,15 @@ class DailyPulse extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = (currentCalories / goal).clamp(0.0, 1.0);
-    
     return ClipRRect(
-      borderRadius: BorderRadius.circular(30),
+      borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(30),
+            color: Colors.white.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: Colors.white.withOpacity(0.3),
               width: 1,
@@ -41,64 +39,42 @@ class DailyPulse extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Daily Pulse label
-              Text(
-                '✦ Daily Pulse',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+              // Calories
+              _PulseItem(
+                label: '${currentCalories}',
+                sublabel: '/$goal',
+                highlight: true,
+              ),
+              Container(width: 1, height: 16, color: Colors.black12),
+              // Protein
+              _PulseItem(
+                label: '${protein}g',
+                sublabel: 'P',
+                color: Colors.red,
+              ),
+              Container(width: 1, height: 16, color: Colors.black12),
+              // Carbs  
+              _PulseItem(
+                label: '${carbs}g',
+                sublabel: 'C',
+                color: Colors.amber,
+              ),
+              Container(width: 1, height: 16, color: Colors.black12),
+              // Fat
+              _PulseItem(
+                label: '${fat}g',
+                sublabel: 'F',
+                color: Colors.blue,
+              ),
+              // Streak
+              if (streak > 0) ...[
+                Container(width: 1, height: 16, color: Colors.black12),
+                _PulseItem(
+                  label: '${streak}d',
+                  sublabel: 'streak',
                   color: const Color(0xFF6366F1),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Container(width: 1, height: 12, color: Colors.black12),
-              const SizedBox(width: 16),
-              // Calories
-              Text(
-                '$currentCalories',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-              Text(
-                ' / $goal',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w300,
-                  color: Colors.black45,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Container(width: 1, height: 12, color: Colors.black12),
-              const SizedBox(width: 16),
-              // Macro dots
-              _MacroIndicator(color: Colors.red, value: protein),
-              const SizedBox(width: 8),
-              _MacroIndicator(color: Colors.amber, value: carbs),
-              const SizedBox(width: 8),
-              _MacroIndicator(color: Colors.blue, value: fat),
-              const SizedBox(width: 16),
-              Container(width: 1, height: 12, color: Colors.black12),
-              const SizedBox(width: 16),
-              // Streak
-              if (streak > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '${streak}d',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF6366F1),
-                    ),
-                  ),
-                ),
+              ],
             ],
           ),
         ),
@@ -107,33 +83,43 @@ class DailyPulse extends StatelessWidget {
   }
 }
 
-class _MacroIndicator extends StatelessWidget {
-  final Color color;
-  final int value;
+class _PulseItem extends StatelessWidget {
+  final String label;
+  final String sublabel;
+  final Color? color;
+  final bool highlight;
 
-  const _MacroIndicator({required this.color, required this.value});
+  const _PulseItem({
+    required this.label,
+    required this.sublabel,
+    this.color,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color.withOpacity(value > 0 ? 0.9 : 0.2),
-            shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: highlight ? 14 : 12,
+              fontWeight: highlight ? FontWeight.w600 : FontWeight.w400,
+              color: color ?? Colors.black87,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '${value}g',
-          style: GoogleFonts.jetBrainsMono(
-            fontSize: 10,
-            color: Colors.black54,
+          Text(
+            sublabel,
+            style: GoogleFonts.inter(
+              fontSize: 9,
+              color: Colors.black38,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

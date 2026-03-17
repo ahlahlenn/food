@@ -46,79 +46,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Simple icon
           Container(
-            width: 120,
-            height: 120,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF6366F1).withOpacity(0.3),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(
               Icons.edit_note_rounded,
-              size: 60,
+              size: 40,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
           Text(
-            'Welcome to Nourish',
+            'Nourish',
             style: GoogleFonts.inter(
               fontSize: 28,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
-            'Track your meals effortlessly. Just type what you eat — no complex menus, no data entry fatigue.',
+            'Simple. Private. Your nutrition journal.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              color: Colors.black54,
-              height: 1.5,
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 14,
+              color: Colors.black45,
             ),
           ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _featureDot('Natural'),
-              const SizedBox(width: 24),
-              _featureDot('Fast'),
-              const SizedBox(width: 24),
-              _featureDot('Private'),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-
-  Widget _featureDot(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF6366F1).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF6366F1),
-        ),
       ),
     );
   }
@@ -130,69 +94,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Your Daily Goal',
+            'Daily calorie goal',
             style: GoogleFonts.inter(
-              fontSize: 28,
+              fontSize: 22,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 32),
+          // Goal display
           Text(
-            'Set your calorie target',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              color: Colors.black54,
+            '$_dailyGoal',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 56,
+              fontWeight: FontWeight.w300,
+              color: const Color(0xFF6366F1),
             ),
           ),
-          const SizedBox(height: 48),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '$_dailyGoal',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w300,
-                    color: const Color(0xFF6366F1),
-                  ),
-                ),
-                Text(
-                  'kcal / day',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.black45,
-                  ),
-                ),
-              ],
+          Text(
+            'kcal',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 14,
+              color: Colors.black45,
             ),
           ),
-          const SizedBox(height: 24),
-          Slider(
-            value: _dailyGoal.toDouble(),
-            min: 1200,
-            max: 4000,
-            divisions: 28,
-            activeColor: const Color(0xFF6366F1),
-            onChanged: (value) => setState(() => _dailyGoal = value.round()),
+          const SizedBox(height: 32),
+          // Slider
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: const Color(0xFF6366F1),
+              inactiveTrackColor: Colors.black12,
+              thumbColor: const Color(0xFF6366F1),
+              overlayColor: const Color(0xFF6366F1).withOpacity(0.1),
+            ),
+            child: Slider(
+              value: _dailyGoal.toDouble(),
+              min: 1200,
+              max: 4000,
+              divisions: 28,
+              onChanged: (value) => setState(() => _dailyGoal = value.round()),
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('1200', style: GoogleFonts.inter(fontSize: 12, color: Colors.black38)),
-              Text('4000', style: GoogleFonts.inter(fontSize: 12, color: Colors.black38)),
+              Text('1200', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.black30)),
+              Text('4000', style: GoogleFonts.jetBrainsMono(fontSize: 11, color: Colors.black30)),
             ],
           ),
         ],
@@ -206,6 +153,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Back button or spacer
           if (_currentPage > 0)
             TextButton(
               onPressed: () {
@@ -221,11 +169,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             )
           else
             const SizedBox(width: 60),
+          // Dots
           Row(
             children: List.generate(2, (index) {
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: _currentPage == index ? 24 : 8,
+                width: _currentPage == index ? 20 : 8,
                 height: 8,
                 decoration: BoxDecoration(
                   color: _currentPage == index
@@ -236,6 +185,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               );
             }),
           ),
+          // Next/Start button
           ElevatedButton(
             onPressed: () async {
               if (_currentPage == 0) {
@@ -253,13 +203,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
             child: Text(
-              _currentPage == 0 ? 'Next' : 'Get Started',
+              _currentPage == 0 ? 'Next' : 'Start',
               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
             ),
           ),

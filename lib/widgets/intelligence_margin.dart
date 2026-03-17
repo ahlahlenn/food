@@ -10,36 +10,43 @@ class IntelligenceMargin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 80,
+      width: 60,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (entry.isLoading)
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.black26,
+                ),
+              ),
             )
           else ...[
+            // Calories - handwritten style
             Text(
               '${entry.calories}',
               style: GoogleFonts.jetBrainsMono(
                 fontSize: 14,
-                fontWeight: FontWeight.w300,
+                fontWeight: FontWeight.w400,
                 color: Colors.black87,
               ),
             ),
             Text(
               'kcal',
               style: GoogleFonts.jetBrainsMono(
-                fontSize: 10,
-                fontWeight: FontWeight.w300,
-                color: Colors.black45,
+                fontSize: 9,
+                color: Colors.black38,
               ),
             ),
             const SizedBox(height: 8),
+            // Macros
             _MacroDot('P', entry.protein, Colors.red),
-            _MacroDot('C', entry.carbs, Colors.amber),
+            _MacroDot('C', entry.carbs, Colors.amber.shade600),
             _MacroDot('F', entry.fat, Colors.blue),
           ],
         ],
@@ -58,15 +65,15 @@ class _MacroDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             decoration: BoxDecoration(
-              color: color.withOpacity(value > 0 ? 0.8 : 0.2),
+              color: value > 0 ? color : color.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
           ),
@@ -75,7 +82,7 @@ class _MacroDot extends StatelessWidget {
             '${value}g',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 9,
-              color: Colors.black38,
+              color: value > 0 ? Colors.black54 : Colors.black26,
             ),
           ),
         ],

@@ -7,7 +7,6 @@ import '../models/food_entry.dart';
 import '../providers/entries_provider.dart';
 import '../widgets/intelligence_margin.dart';
 import '../widgets/daily_pulse.dart';
-import '../widgets/ink_droplet_fab.dart';
 import 'settings_screen.dart';
 
 class PaperScreen extends ConsumerStatefulWidget {
@@ -20,9 +19,9 @@ class PaperScreen extends ConsumerStatefulWidget {
 class _PaperScreenState extends ConsumerState<PaperScreen> {
   final TextEditingController _textController = TextEditingController();
   final SpeechToText _speechToText = SpeechToText();
-  final FocusNode _focusNode = FocusNode();
   final List<String> _spokenWords = [];
   bool _speechEnabled = false;
+  bool _isRecording = false;
   String? _editingEntryId;
 
   @override
@@ -38,6 +37,7 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
 
   void _startListening() {
     _spokenWords.clear();
+    setState(() => _isRecording = true);
     _speechToText.listen(
       onResult: (result) {
         setState(() {
@@ -46,12 +46,14 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       },
       listenFor: const Duration(seconds: 30),
       pauseFor: const Duration(seconds: 3),
+      onSoundLevelChange: (level) {},
     );
     ref.read(isRecordingProvider.notifier).state = true;
   }
 
   void _stopListening() {
     _speechToText.stop();
+    setState(() => _isRecording = false);
     ref.read(isRecordingProvider.notifier).state = false;
     
     if (_spokenWords.isNotEmpty) {
@@ -70,7 +72,6 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       ref.read(entriesProvider.notifier).addEntry(text.trim());
     }
     _textController.clear();
-    _focusNode.unfocus();
   }
 
   void _startEditing(FoodEntry entry) {
@@ -78,7 +79,6 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       _editingEntryId = entry.id;
       _textController.text = entry.text;
     });
-    _focusNode.requestFocus();
   }
 
   void _cancelEditing() {
@@ -86,7 +86,6 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       _editingEntryId = null;
       _textController.clear();
     });
-    _focusNode.unfocus();
   }
 
   @override
@@ -95,6 +94,7 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
     final totals = ref.watch(dailyTotalsProvider);
     final goal = ref.watch(dailyGoalProvider);
     final streakAsync = ref.watch(streakProvider);
+    final isRecording = ref.watch(isRecordingProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
@@ -103,7 +103,7 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
               child: Row(
                 children: [
                   Text(
@@ -123,35 +123,17 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                       MaterialPageRoute(builder: (_) => const SettingsScreen()),
                     ),
                   ),
-                  Text(
-                    DateFormat('EEEE, MMM d').format(DateTime.now()),
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.black45,
-                    ),
-                  ),
                 ],
               ),
             ),
-            // Paper canvas (editable area)
+            // Canvas - no boxes, just paper
             Expanded(
               child: GestureDetector(
-                onTap: () {
-                  // Tap on canvas to start typing
-                  _focusNode.requestFocus();
-                },
+                onTap: () => FocusScope.of(context).unfocus(),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFAF9F6),
                   ),
                   child: entries.isEmpty
                       ? _buildEmptyState()
@@ -159,25 +141,134 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
                 ),
               ),
             ),
-            // Input area (appears when typing)
-            _buildInputBar(),
-            // Daily Pulse
+            // Input area - only shows when typing
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: _textController.text.isNotEmpty || _editingEntryId != null ? 64 : 0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _textController.text.isNotEmpty || _editingEntryId != null ? 1 : 0,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _textController,
+                          style: GoogleFonts.jetBrainsMono(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Type your meal...',
+                            hintStyle: GoogleFonts.jetBrainsMono(color: Colors.black26, fontSize: 14),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: _submitEntry,
+                        ),
+                      ),
+                      if (_editingEntryId != null)
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 18),
+                          color: Colors.black45,
+                          onPressed: _cancelEditing,
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.send_rounded,
+                          size: 20,
+                          color: const Color(0xFF6366F1),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Daily Pulse + FAB
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: streakAsync.when(
-                data: (streak) => DailyPulse(
-                  currentCalories: totals['calories'] ?? 0,
-                  goal: goal,
-                  protein: totals['protein'] ?? 0,
-                  carbs: totals['carbs'] ?? 0,
-                  fat: totals['fat'] ?? 0,
-                  streak: streak,
-                ),
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: streakAsync.when(
+                      data: (streak) => DailyPulse(
+                        currentCalories: totals['calories'] ?? 0,
+                        goal: goal,
+                        protein: totals['protein'] ?? 0,
+                        carbs: totals['carbs'] ?? 0,
+                        fat: totals['fat'] ?? 0,
+                        streak: streak,
+                      ),
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  _buildActionButton(),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton() {
+    final hasText = _textController.text.isNotEmpty;
+    final isRecording = ref.watch(isRecordingProvider);
+
+    return GestureDetector(
+      onTap: () {
+        if (hasText) {
+          _submitEntry(_textController.text);
+        }
+      },
+      onLongPressStart: (_) => _startListening(),
+      onLongPressEnd: (_) => _stopListening(),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: isRecording
+                ? [const Color(0xFFEF4444), const Color(0xFFDC2626)]
+                : hasText
+                    ? [const Color(0xFF6366F1), const Color(0xFF4F46E5)]
+                    : [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: (isRecording ? const Color(0xFFEF4444) : const Color(0xFF6366F1))
+                  .withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
+          child: isRecording
+              ? _RecordingIndicator()
+              : Icon(
+                  hasText ? Icons.send_rounded : Icons.mic_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
         ),
       ),
     );
@@ -188,25 +279,21 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.edit_note,
-            size: 64,
-            color: Colors.black12,
-          ),
-          const SizedBox(height: 16),
           Text(
-            'Start typing on the canvas',
-            style: GoogleFonts.inter(
+            'Tap + to add',
+            style: GoogleFonts.jetBrainsMono(
               fontSize: 16,
-              color: Colors.black38,
+              color: Colors.black26,
+              fontStyle: FontStyle.italic,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'or hold the button to speak',
+            'or hold mic to speak',
             style: GoogleFonts.jetBrainsMono(
               fontSize: 12,
-              color: Colors.black26,
+              color: Colors.black18,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],
@@ -216,14 +303,11 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
 
   Widget _buildEntriesList(List<FoodEntry> entries) {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: entries.length + 1, // +1 for input at top
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      itemCount: entries.length,
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return const SizedBox.shrink(); // Input is below
-        }
-        final entry = entries[index - 1];
-        return _CanvasEntry(
+        final entry = entries[index];
+        return _HandwrittenEntry(
           entry: entry,
           onTap: () => _startEditing(entry),
           onDelete: () => ref.read(entriesProvider.notifier).deleteEntry(entry.id),
@@ -232,83 +316,20 @@ class _PaperScreenState extends ConsumerState<PaperScreen> {
     );
   }
 
-  Widget _buildInputBar() {
-    final isRecording = ref.watch(isRecordingProvider);
-    
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Focus(
-              onFocusChange: (hasFocus) {
-                if (!hasFocus && _textController.text.isEmpty) {
-                  // Keep the bar visible but subtle
-                }
-              },
-              child: TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                style: GoogleFonts.inter(fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: _editingEntryId != null 
-                      ? 'Editing entry...'
-                      : 'Type what you ate...',
-                  hintStyle: GoogleFonts.inter(color: Colors.black26),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                ),
-                onSubmitted: _submitEntry,
-                textInputAction: TextInputAction.done,
-              ),
-            ),
-          ),
-          if (_editingEntryId != null)
-            IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              color: Colors.black45,
-              onPressed: _cancelEditing,
-            ),
-          InkDropletFab(
-            onPressed: () => _submitEntry(_textController.text),
-            onLongPressStart: _startListening,
-            onLongPressEnd: _stopListening,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _textController.dispose();
-    _focusNode.dispose();
     _speechToText.stop();
     super.dispose();
   }
 }
 
-class _CanvasEntry extends StatelessWidget {
+class _HandwrittenEntry extends StatelessWidget {
   final FoodEntry entry;
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
-  const _CanvasEntry({
+  const _HandwrittenEntry({
     required this.entry,
     required this.onTap,
     required this.onDelete,
@@ -322,51 +343,119 @@ class _CanvasEntry extends StatelessWidget {
       onDismissed: (_) => onDelete(),
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        child: const Icon(Icons.delete_outline, color: Colors.red),
+        padding: const EdgeInsets.only(right: 20),
+        child: Icon(Icons.delete_outline, color: Colors.red.withOpacity(0.5)),
       ),
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFAF9F6),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.black.withOpacity(0.05),
-            ),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Handwritten text
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Timestamp in small italic
                     Text(
-                      entry.text,
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        color: Colors.black87,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      DateFormat('h:mm a').format(entry.timestamp),
+                      _formatTime(entry.timestamp),
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 11,
                         color: Colors.black26,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Main entry - handwritten style
+                    Text(
+                      entry.text,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 15,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w300,
+                        height: 1.5,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 16),
+              // Intelligence margin
               IntelligenceMargin(entry: entry),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final entryDay = DateTime(dt.year, dt.month, dt.day);
+    
+    if (entryDay == today) {
+      return DateFormat('h:mm a').format(dt);
+    } else if (entryDay == today.subtract(const Duration(days: 1))) {
+      return 'Yesterday, ${DateFormat('h:mm a').format(dt)}';
+    } else {
+      return DateFormat('MMM d, h:mm a').format(dt);
+    }
+  }
+}
+
+class _RecordingIndicator extends StatefulWidget {
+  @override
+  State<_RecordingIndicator> createState() => _RecordingIndicatorState();
+}
+
+class _RecordingIndicatorState extends State<_RecordingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _dot(0),
+            const SizedBox(width: 3),
+            _dot(0.2),
+            const SizedBox(width: 3),
+            _dot(0.4),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _dot(double delay) {
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.3 + (_controller.value + delay) % 1 * 0.7),
+        shape: BoxShape.circle,
       ),
     );
   }

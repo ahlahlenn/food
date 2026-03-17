@@ -12,30 +12,25 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
-  bool _isLoading = true;
   String _status = '';
 
   @override
   void initState() {
     super.initState();
-    _loadApiKey();
-  }
-
-  Future<void> _loadApiKey() async {
-    final key = await _getStoredKey();
-    _apiKeyController.text = key;
-    setState(() => _isLoading = false);
-  }
-
-  Future<String> _getStoredKey() async {
-    // This is a workaround - in production you'd use a secure storage
-    return '';
+    _apiKeyController.text = GroqService.hasApiKey ? '••••••••' : '';
   }
 
   Future<void> _saveApiKey() async {
+    if (_apiKeyController.text.isEmpty || _apiKeyController.text == '••••••••') {
+      return;
+    }
+    
     setState(() => _status = 'Saving...');
-    await GroqService.setApiKey(_apiKeyController.text.trim());
-    setState(() => _status = 'Saved!');
+    GroqService.setApiKey(_apiKeyController.text.trim());
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _status = 'Saved ✓');
+    
     await Future.delayed(const Duration(seconds: 1));
     setState(() => _status = '');
   }
@@ -59,152 +54,100 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          // API Key section
+          Text(
+            'Groq API Key',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black45,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSection(
-                  'API Configuration',
-                  [
-                    _buildTextField(
-                      'Groq API Key',
-                      'Enter your Groq API key for AI parsing',
-                      _apiKeyController,
-                      obscure: true,
+                Text(
+                  'For AI-powered nutrition parsing',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: Colors.black38,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _apiKeyController,
+                  obscureText: true,
+                  style: GoogleFonts.jetBrainsMono(fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'gsk_...',
+                    hintStyle: GoogleFonts.jetBrainsMono(color: Colors.black26),
+                    filled: true,
+                    fillColor: const Color(0xFFFAF9F6),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _saveApiKey,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          _status.isNotEmpty ? _status : 'Save API Key',
-                          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                        ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveApiKey,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildSection(
-                  'About',
-                  [
-                    _buildInfoRow('App Name', 'Nourish'),
-                    _buildInfoRow('Version', '1.0.0'),
-                    _buildInfoRow('Framework', 'Flutter'),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildSection(
-                  'How It Works',
-                  [
-                    Text(
-                      'Nourish uses AI to automatically estimate calories and macros from your meal descriptions. '
-                      'The more specific you are, the better the estimates.\n\n'
-                      'Example: "Big bowl of oatmeal with blueberries" → ~300 kcal',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: Colors.black54,
-                        height: 1.5,
-                      ),
+                    child: Text(
+                      _status.isNotEmpty ? _status : 'Save',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.black45,
-            letterSpacing: 0.5,
           ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: children,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, String hint, TextEditingController controller, {bool obscure = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          obscureText: obscure,
-          style: GoogleFonts.jetBrainsMono(fontSize: 13),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.inter(color: Colors.black26, fontSize: 13),
-            filled: true,
-            fillColor: const Color(0xFFFAF9F6),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
+          const SizedBox(height: 24),
+          // About
+          Text(
+            'About',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: Colors.black45,
+              letterSpacing: 0.5,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
-          ),
-          Text(
-            value,
-            style: GoogleFonts.inter(fontSize: 14, color: Colors.black45),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                _InfoRow('App', 'Nourish'),
+                _InfoRow('Version', '1.0.0'),
+                _InfoRow('AI', GroqService.hasApiKey ? 'Enabled' : 'Local only'),
+              ],
+            ),
           ),
         ],
       ),
@@ -215,5 +158,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _apiKeyController.dispose();
     super.dispose();
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 14, color: Colors.black54)),
+          Text(value, style: GoogleFonts.jetBrainsMono(fontSize: 13, color: Colors.black38)),
+        ],
+      ),
+    );
   }
 }
